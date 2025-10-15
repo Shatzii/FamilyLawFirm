@@ -1,5 +1,10 @@
 # 🏔️ BAM FamiLex AI - Colorado Family Law Platform
 
+![Frontend CI](https://github.com/Shatzii/FamilyLawFirm/actions/workflows/frontend.yml/badge.svg)
+![Backend CI](https://github.com/Shatzii/FamilyLawFirm/actions/workflows/backend.yml/badge.svg)
+![Frontend Audit](https://github.com/Shatzii/FamilyLawFirm/actions/workflows/audit-frontend.yml/badge.svg)
+![Backend Audit](https://github.com/Shatzii/FamilyLawFirm/actions/workflows/audit-backend.yml/badge.svg)
+
 **Professional offline-capable family law practice management platform** specifically designed for Colorado attorneys and their clients.
 
 ## 🎯 Project Overview
@@ -28,8 +33,8 @@ BAM FamiLex AI is a comprehensive Next.js 14 TypeScript application that provide
 
    ```bash
    # If using git
-   git clone [repository-url]
-   cd FamilyLawSite
+   git clone https://github.com/Shatzii/FamilyLawFirm.git
+   cd FamilyLawFirm
    
    # OR download and extract ZIP
    ```
