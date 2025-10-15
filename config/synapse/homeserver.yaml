@@ -1,0 +1,9 @@
+server_name: bam-familex.local
+report_stats: false
+public_baseurl: http://localhost:8008/
+listeners:
+  - port: 8008
+    type: http
+    tls: false
+    resources:
+      - names: [client, federation]

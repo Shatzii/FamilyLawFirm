@@ -1,0 +1,15 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy only package files to leverage caching when possible
+COPY package*.json ./
+
+RUN npm install
+
+# Copy source (will be overridden by volume in docker-compose during dev)
+COPY . .
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev", "--", "-p", "3000", "-H", "0.0.0.0"]

@@ -1,0 +1,164 @@
+version: '3.9'
+
+name: bam-familex
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: familex
+      POSTGRES_USER: familex_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./data/init:/docker-entrypoint-initdb.d
+    networks:
+      - familex-network
+
+  redis:
+    image: redis:7-alpine
+    networks:
+      - familex-network
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - familex-network
+
+  backend:
+    build:
+      context: ./packages/backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://familex_user:${DB_PASSWORD:-changeme}@postgres:5432/familex
+      REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      JWT_SECRET: ${JWT_SECRET:-devsecret}
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    ports:
+      - "3001:3001"
+    networks:
+      - familex-network
+
+  legal-nlp:
+    build:
+      context: ./packages/ai-services/legal-nlp
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    networks:
+      - familex-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    environment:
+      NEXT_TELEMETRY_DISABLED: '1'
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - familex-network
+
+  # Optional services enabled via compose profiles. Run with `--profile extras` to include.
+  matrix-synapse:
+    image: matrixdotorg/synapse:latest
+    profiles: ["extras"]
+    ports:
+      - "8008:8008"
+    environment:
+      SYNAPSE_SERVER_NAME: "bam-familex.local"
+      SYNAPSE_REPORT_STATS: "no"
+    volumes:
+      - ./config/synapse:/data
+    networks:
+      - familex-network
+
+  jitsi-web:
+    image: jitsi/web:latest
+    profiles: ["extras"]
+    ports:
+      - "8080:80"
+      - "8443:443"
+    environment:
+      - ENABLE_AUTH=1
+      - ENABLE_GUESTS=0
+    volumes:
+      - ./config/jitsi:/config
+    networks:
+      - familex-network
+
+  docuseal:
+    image: docuseal/docuseal:latest
+    profiles: ["extras"]
+    ports:
+      - "3002:3000"
+    environment:
+      - DATABASE_URL=postgresql://familex_user:${DB_PASSWORD:-changeme}@postgres:5432/familex
+    depends_on:
+      - postgres
+    networks:
+      - familex-network
+
+  calcom:
+    image: calcom/cal.com:latest
+    profiles: ["extras"]
+    ports:
+      - "3003:3000"
+    environment:
+      - DATABASE_URL=postgresql://familex_user:${DB_PASSWORD:-changeme}@postgres:5432/familex
+    depends_on:
+      - postgres
+    networks:
+      - familex-network
+
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    profiles: ["extras"]
+    ports:
+      - "3004:3000"
+    environment:
+      - DATABASE_URL=postgresql://familex_user:${DB_PASSWORD:-changeme}@postgres:5432/familex
+    depends_on:
+      - postgres
+    networks:
+      - familex-network
+
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["extras"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - familex-network
+
+volumes:
+  postgres_data:
+  minio_data:
+  ollama_data:
+
+networks:
+  familex-network:
+    driver: bridge
