@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
   ].join('; ')
   const res = NextResponse.json({ ok: true })
   const cookies: string[] = [cookieParts('auth', '1')]
-  if (token) cookies.push(cookieParts('token', encodeURIComponent(token)))
+  if (token) cookies.push(cookieParts('token', token))
   res.headers.append('Set-Cookie', cookies[0])
   if (cookies[1]) res.headers.append('Set-Cookie', cookies[1])
   logger.info('login success', { email })

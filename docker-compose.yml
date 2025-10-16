@@ -50,7 +50,7 @@ services:
       - redis
       - minio
     ports:
-      - "3001:3001"
+      - "4001:3001"
     networks:
       - familex-network
 
@@ -71,7 +71,7 @@ services:
       NEXT_TELEMETRY_DISABLED: '1'
       NODE_ENV: development
     ports:
-      - "3000:3000"
+      - "3001:3001"
     volumes:
       - ./:/app
       - /app/node_modules

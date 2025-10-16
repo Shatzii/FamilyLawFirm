@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { env } from '../../../../lib/env'
 
 export async function GET(req: NextRequest) {
-  const backend = process.env.BACKEND_URL || 'http://localhost:3001'
+  const backend = env.BACKEND_URL
   try {
-    const token = req.cookies.get('token')?.value || ''
+    const raw = req.cookies.get('token')?.value || ''
+    const token = (() => { try { return decodeURIComponent(raw) } catch { return raw } })()
     const r = await fetch(`${backend}/api/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: 'no-store',

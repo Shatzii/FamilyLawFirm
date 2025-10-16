@@ -17,7 +17,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:3000")
+frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:3001")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[frontend_origin],
@@ -39,6 +39,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255))
+    role: Mapped[str] = mapped_column(String(32), default="client", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 class Case(Base):
@@ -59,6 +60,49 @@ def get_db():
 
 def create_db():
     Base.metadata.create_all(bind=engine)
+    ensure_user_role_column()
+
+def ensure_user_role_column():
+    """Ensure 'role' column exists on users table for both SQLite and Postgres."""
+    try:
+        with engine.begin() as conn:
+            dialect = conn.dialect.name
+            has_role = False
+            if dialect == 'sqlite':
+                rows = conn.exec_driver_sql("PRAGMA table_info(users)").fetchall()
+                for row in rows:
+                    # row[1] is column name
+                    if len(row) > 1 and row[1] == 'role':
+                        has_role = True
+                        break
+                if not has_role:
+                    conn.exec_driver_sql("ALTER TABLE users ADD COLUMN role VARCHAR(32) DEFAULT 'client'")
+            else:
+                # Postgres/MySQL compatible
+                conn.exec_driver_sql("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(32) DEFAULT 'client'")
+    except Exception:
+        # Non-fatal; seeding will still try to insert with role; errors will surface if schema incompatible
+        pass
+
+# --- Dev utilities ---
+@app.post("/api/admin/seed-dev")
+def seed_dev(db: Session = Depends(get_db)):
+    """Seed demo users (admin, lawyer, client) in development only."""
+    if os.getenv("NODE_ENV", "development") != "development":
+        raise HTTPException(status_code=403, detail="Forbidden")
+    created = []
+    def ensure(email: str, password: str, role: str):
+        u = db.query(User).filter(User.email == email).first()
+        if not u:
+            u = User(email=email, password_hash=hash_password(password), role=role)
+            db.add(u)
+            db.commit()
+            db.refresh(u)
+            created.append(email)
+    ensure("admin@example.com", "admin123!", "admin")
+    ensure("lawyer@example.com", "lawyer123!", "lawyer")
+    ensure("client@example.com", "client123!", "client")
+    return {"created": created}
 
 # --- Auth ---
 JWT_SECRET = os.getenv("JWT_SECRET", "devsecret")
@@ -80,6 +124,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 class SignupRequest(BaseModel):
     email: str
     password: str
+    role: Optional[str] = "client"
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -122,11 +167,11 @@ def signup(payload: SignupRequest, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.email == payload.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
-    user = User(email=payload.email, password_hash=hash_password(payload.password))
+    user = User(email=payload.email, password_hash=hash_password(payload.password), role=(payload.role or "client"))
     db.add(user)
     db.commit()
     db.refresh(user)
-    token = create_access_token({"sub": str(user.id), "email": user.email})
+    token = create_access_token({"sub": str(user.id), "email": user.email, "role": user.role})
     return TokenResponse(access_token=token)
 
 @app.post("/api/auth/login", response_model=TokenResponse)
@@ -134,12 +179,13 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     user = db.query(User).filter(User.email == form_data.username).first()
     if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-    token = create_access_token({"sub": str(user.id), "email": user.email})
+    token = create_access_token({"sub": str(user.id), "email": user.email, "role": user.role})
     return TokenResponse(access_token=token)
 
 class MeResponse(BaseModel):
     id: int
     email: str
+    role: str
 
 @app.get("/api/auth/me", response_model=MeResponse)
 def me(
@@ -153,7 +199,7 @@ def me(
     user = get_current_user(db=db, token=token)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
-    return MeResponse(id=user.id, email=user.email)
+    return MeResponse(id=user.id, email=user.email, role=user.role)
 
 @app.get("/api/forms/colorado")
 async def get_colorado_forms():

@@ -1,0 +1,46 @@
+version: '3.9'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend.prod
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: '1'
+      BACKEND_URL: ${BACKEND_URL}
+    expose:
+      - '3001'
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./packages/backend
+      dockerfile: Dockerfile
+    environment:
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN}
+      BACKEND_URL: ${BACKEND_URL}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+    expose:
+      - '3001'
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - '80:80'
+      # Enable '443:443' after adding TLS certs and an ssl-enabled config
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - backend
+
+networks:
+  default:
+    name: familex-prod

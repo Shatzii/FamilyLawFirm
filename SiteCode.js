@@ -1319,7 +1319,7 @@ docker-compose exec matrix-synapse python -m synapse.app.homeserver -c /data/hom
 echo "✅ BAM FamiLex AI Platform deployment complete!"
 echo ""
 echo "🌐 Access URLs:"
-echo "   Frontend:      http://localhost:3000"
+echo "   Frontend:      http://localhost:3001"
 echo "   API:           http://localhost:3001"
 echo "   DocuSeal:      http://localhost:3002"
 echo "   Cal.com:       http://localhost:3003"

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import ThemeToggle from './ThemeToggle'
 
 export default function AuthHeader() {
-  const [auth, setAuth] = useState<{ authenticated: boolean; user?: { email: string } } | null>(null)
+  const [auth, setAuth] = useState<{ authenticated: boolean; user?: { email: string; role?: string } } | null>(null)
 
   useEffect(() => {
     fetch('/api/auth/me', { cache: 'no-store' })
@@ -26,6 +26,11 @@ export default function AuthHeader() {
           <ThemeToggle />
           {auth?.authenticated ? (
           <div className="flex items-center gap-3">
+            {auth.user?.role && (
+              <span className="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-800 border border-blue-200">
+                {auth.user.role}
+              </span>
+            )}
             <span className="text-muted">{auth.user?.email}</span>
             <button className="underline text-brand" onClick={logout}>Logout</button>
           </div>
