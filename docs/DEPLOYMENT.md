@@ -17,7 +17,7 @@ If you only need the quick checklist, jump to the end.
   - Connect the repo; it will pick up `netlify.toml` automatically.
   - Set env vars:
     - `BACKEND_URL = https://api.shatzii.com` (or your Railway backend URL)
-    - `FRONTEND_ORIGIN = https://law.shatzii.com`
+    - `FRONTEND_ORIGIN = https://familylaw.netlify.app` (or your custom domain `https://law.shatzii.com` once mapped)
   - Add custom domain `law.shatzii.com` in Netlify Domains.
   - In GoDaddy, create a CNAME: `law` → your-site-name.netlify.app.
 
@@ -29,9 +29,9 @@ If you only need the quick checklist, jump to the end.
   - (Recommended) Attach custom domain `api.shatzii.com`; follow Railway’s CNAME instructions in GoDaddy.
 
 3) Verify
-  - Wait for DNS to propagate.
-  - Visit `https://law.shatzii.com` and run the app.
-  - Check `https://law.shatzii.com/api/health` — backend should be `up`.
+  - Wait for DNS to propagate (if using a custom domain).
+  - Visit `https://familylaw.netlify.app` (or your custom domain `https://law.shatzii.com`) and run the app.
+  - Check `https://familylaw.netlify.app/api/health` (or your custom domain) — backend should be `up`.
   - Try signup/login; cookies require HTTPS.
 
 ## 1) Create the subdomain in GoDaddy
@@ -73,6 +73,7 @@ These keys are used by the app. Set them in your platform (Netlify, Railway) or 
   - Production single-domain via Nginx: https://law.shatzii.com
   - Separate backend domain: https://api.shatzii.com or your Railway backend URL
 - FRONTEND_ORIGIN: Exact origin allowed by CORS on the backend (e.g., https://law.shatzii.com)
+  - If you’re using the Netlify default subdomain, use: https://familylaw.netlify.app
 - JWT_SECRET: 32+ character secret for backend JWT signing
 - CSRF_SECRET: 16+ character secret (frontend CSRF helper)
 - DATABASE_URL: e.g., postgresql://USER:PASS@HOST:5432/DB
@@ -97,8 +98,8 @@ You have two primary paths:
 Frontend (Netlify):
 1) Connect repo to Netlify. Build command: `npm run build`. Publish: `.next` (already in `netlify.toml`).
 2) Set env vars:
-   - BACKEND_URL = your Railway backend URL or https://api.shatzii.com
-   - (optional) FRONTEND_ORIGIN = https://law.shatzii.com
+  - BACKEND_URL = your Railway backend URL or https://api.shatzii.com
+  - FRONTEND_ORIGIN = https://familylaw.netlify.app (or your custom domain https://law.shatzii.com)
 3) Add the custom domain in Netlify: law.shatzii.com. Netlify will give a target like your-site-name.netlify.app.
 4) In GoDaddy DNS, create a CNAME for `law` → your-site-name.netlify.app.
 5) Wait for DNS and confirm HTTPS works.
@@ -174,7 +175,7 @@ C:\Windows\System32\drivers\etc\hosts
 docker compose -f docker-compose.prod.yml -f docker-compose.ssl.yml up -d --build
 ```
 
-5) Visit https://law.shatzii.com
+5) Visit https://law.shatzii.com (or your Netlify domain if you’ve mapped hosts accordingly)
 
 PowerShell quick checks:
 
@@ -217,7 +218,7 @@ Test-NetConnection -ComputerName law.shatzii.com -Port 443
 
 ## 7) Quick checklist
 
-- GoDaddy → add law.shatzii.com (A for server, or CNAME to Netlify)
+- GoDaddy → add law.shatzii.com (A for server, or CNAME to Netlify). If not using a custom domain yet, use https://familylaw.netlify.app.
 - Set env vars (FRONTEND_ORIGIN, BACKEND_URL, JWT_SECRET, DATABASE_URL, etc.)
 - Deploy via:
   - Netlify (frontend) + Railway (backend), or

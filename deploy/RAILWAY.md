@@ -23,21 +23,21 @@ This repo supports Railway for both services:
        - FRONTEND_ORIGIN (e.g.):
 
           ```text
-          https://law.shatzii.com
+          https://familylaw.netlify.app
           ```
 
     - Backend:
        - FRONTEND_ORIGIN (e.g.):
 
           ```text
-          https://law.shatzii.com
+          https://familylaw.netlify.app
           ```
 
        - JWT_SECRET, CSRF_SECRET
        - DATABASE_URL, REDIS_URL
        - MINIO_* or S3 equivalents
 3) Domains
-   - Attach your custom domains: law.shatzii.com (frontend) and api.law.shatzii.com (backend)
+   - Attach your custom domains when ready: law.shatzii.com (frontend) and api.shatzii.com (backend)
 4) Notes
    - Both containers honor Railway’s dynamic PORT automatically.
    - CSP in Next.js is production-safe by default; ensure BACKEND_URL is accurate.

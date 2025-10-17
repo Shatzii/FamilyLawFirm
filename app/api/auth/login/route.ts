@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   }
   // CSRF check
   const csrf = req.headers.get('x-csrf-token')
-  if (!verifyCsrf(csrf)) {
+  if (!(await verifyCsrf(csrf))) {
     logger.warn('login csrf_failed')
     return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 })
   }

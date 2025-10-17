@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Too many attempts. Please try again later.' }, { status: 429, headers: { 'Retry-After': '600' } })
   }
   const csrf = req.headers.get('x-csrf-token')
-  if (!verifyCsrf(csrf)) {
+  if (!(await verifyCsrf(csrf))) {
     logger.warn('signup csrf_failed')
     return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 })
   }

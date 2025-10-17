@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   }
   // CSRF check
   const csrf = req.headers.get('x-csrf-token')
-  if (!verifyCsrf(csrf)) {
+  if (!(await verifyCsrf(csrf))) {
     return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 })
   }
   const backend = process.env.BACKEND_URL || 'http://localhost:3001'

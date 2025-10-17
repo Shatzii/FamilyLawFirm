@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429, headers: { 'Retry-After': '300' } })
   }
   const csrf = req.headers.get('x-csrf-token')
-  if (!verifyCsrf(csrf)) {
+  if (!(await verifyCsrf(csrf))) {
     return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 })
   }
   try {

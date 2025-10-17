@@ -10,17 +10,15 @@ export function generateCsrfToken(sessionId: string) {
   return hmac.digest('hex')
 }
 
-export function issueCsrfCookie() {
+export function createCsrfPair() {
   const sid = crypto.randomBytes(16).toString('hex')
   const token = generateCsrfToken(sid)
-  // HttpOnly=false so the client can read it for header; bind to SameSite=Strict
-  cookies().set('csrf_sid', sid, { httpOnly: true, sameSite: 'strict', path: '/', secure: process.env.NODE_ENV === 'production' })
-  cookies().set('csrf_token', token, { httpOnly: false, sameSite: 'strict', path: '/', secure: process.env.NODE_ENV === 'production' })
-  return token
+  return { sid, token }
 }
 
-export function verifyCsrf(headerToken?: string | null) {
-  const sid = cookies().get('csrf_sid')?.value
+export async function verifyCsrf(headerToken?: string | null) {
+  const jar = await cookies()
+  const sid = jar.get('csrf_sid')?.value
   if (!sid || !headerToken) return false
   return generateCsrfToken(sid) === headerToken
 }
