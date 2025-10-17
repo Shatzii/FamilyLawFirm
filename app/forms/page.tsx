@@ -2,7 +2,8 @@ import { cookies } from 'next/headers'
 import FormsClient from './ui'
 
 export default async function ColoradoFormsPage() {
-  const authed = !!cookies().get('token')?.value
+  const jar = await cookies()
+  const authed = !!jar.get('token')?.value
   return (
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-2">Colorado JDF Forms</h1>
