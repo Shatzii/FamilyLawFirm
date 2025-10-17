@@ -2,7 +2,8 @@ export const dynamic = 'force-dynamic'
 
 async function getHealth() {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_HEALTH_URL || 'http://localhost:3000'}/api/health`, { cache: 'no-store' })
+    // Use relative URL so it works in any environment (Netlify, local, custom domain)
+    const res = await fetch(`/api/health`, { cache: 'no-store' })
     if (!res.ok) throw new Error('bad')
     return res.json()
   } catch {
