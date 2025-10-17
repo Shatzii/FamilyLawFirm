@@ -18,21 +18,25 @@ If you only need the quick checklist, jump to the end.
   - Set env vars:
     - `BACKEND_URL = https://api.shatzii.com` (or your Railway backend URL)
     - `FRONTEND_ORIGIN = https://familylaw.netlify.app` (or your custom domain `https://law.shatzii.com` once mapped)
-  - Add custom domain `law.shatzii.com` in Netlify Domains.
-  - In GoDaddy, create a CNAME: `law` → your-site-name.netlify.app.
+  - (Optional, later) Add custom domain `law.shatzii.com` in Netlify Domains.
+  - (Optional) In GoDaddy, create a CNAME: `law` → your-site-name.netlify.app.
 
 2) Railway (backend)
   - Create a service from this repo with Dockerfile: `packages/backend/Dockerfile`.
   - Set env vars:
-    - `FRONTEND_ORIGIN = https://law.shatzii.com`
+    - `FRONTEND_ORIGIN = https://familylaw.netlify.app`
     - `JWT_SECRET`, `CSRF_SECRET`, `DATABASE_URL` (and any optional `REDIS_URL`, `MINIO_*`).
   - (Recommended) Attach custom domain `api.shatzii.com`; follow Railway’s CNAME instructions in GoDaddy.
 
 3) Verify
-  - Wait for DNS to propagate (if using a custom domain).
-  - Visit `https://familylaw.netlify.app` (or your custom domain `https://law.shatzii.com`) and run the app.
-  - Check `https://familylaw.netlify.app/api/health` (or your custom domain) — backend should be `up`.
+  - Visit `https://familylaw.netlify.app` and run the app.
+  - Check `https://familylaw.netlify.app/api/health` — backend should be `up`.
   - Try signup/login; cookies require HTTPS.
+  - Optional: run the verifier script from Windows PowerShell (replace URLs as needed):
+
+```powershell
+./scripts/optionA-verify.ps1 -FrontendUrl "https://familylaw.netlify.app" -BackendUrl "https://your-backend.up.railway.app"
+```
 
 ## 1) Create the subdomain in GoDaddy
 
@@ -100,14 +104,14 @@ Frontend (Netlify):
 2) Set env vars:
   - BACKEND_URL = your Railway backend URL or https://api.shatzii.com
   - FRONTEND_ORIGIN = https://familylaw.netlify.app (or your custom domain https://law.shatzii.com)
-3) Add the custom domain in Netlify: law.shatzii.com. Netlify will give a target like your-site-name.netlify.app.
-4) In GoDaddy DNS, create a CNAME for `law` → your-site-name.netlify.app.
-5) Wait for DNS and confirm HTTPS works.
+3) (Optional) Add the custom domain in Netlify: law.shatzii.com. Netlify will give a target like your-site-name.netlify.app.
+4) (Optional) In GoDaddy DNS, create a CNAME for `law` → your-site-name.netlify.app.
+5) (Optional) Wait for DNS and confirm HTTPS works.
 
 Backend (Railway):
 1) Create a Railway service from this repo using `packages/backend/Dockerfile`.
 2) Set env vars:
-   - FRONTEND_ORIGIN = https://law.shatzii.com
+  - FRONTEND_ORIGIN = https://familylaw.netlify.app
    - JWT_SECRET, CSRF_SECRET, DATABASE_URL, REDIS_URL, MINIO_*
 3) Attach a custom domain (optional): api.shatzii.com. Railway will instruct you to set a CNAME in GoDaddy.
 4) Confirm the Railway URL responds (and custom domain if configured).
@@ -116,6 +120,12 @@ Notes:
 - The frontend must have BACKEND_URL pointing to the backend’s domain.
 - CSP is already strict; ensure BACKEND_URL matches what you’ve configured.
 - More details in `deploy/RAILWAY.md`.
+
+Quick verifier (PowerShell):
+
+```powershell
+./scripts/optionA-verify.ps1 -FrontendUrl "https://familylaw.netlify.app" -BackendUrl "https://your-backend.up.railway.app"
+```
 
 ### Option B — Your Server/VM with Docker + Nginx (single-domain)
 
@@ -190,6 +200,16 @@ If you see DNS_PROBE_FINISHED_NXDOMAIN, double-check hosts file and DoH/VPN.
 - NXDOMAIN / DNS doesn’t resolve:
   - Propagation: wait and verify with `Resolve-DnsName law.shatzii.com`
   - Disable DoH/VPN; ensure hosts override is effective for local testing
+- TLS: ERR_CERT_COMMON_NAME_INVALID (certificate name mismatch)
+  - If you previously added a hosts override for local HTTPS, remove any line mapping `law.shatzii.com` in `C:\\Windows\\System32\\drivers\\etc\\hosts` and try again.
+  - In Netlify → Domain Management, ensure `law.shatzii.com` is added and verified; wait for Let’s Encrypt certificate to be issued (it can take a few minutes). Use Netlify’s “Verify DNS configuration” button.
+  - DNS must be a CNAME: `law` → `familylaw.netlify.app` (no scheme `https://`). Remove any A/AAAA records on `law` that might conflict.
+  - If using Railway for `api.shatzii.com`, ensure the CNAME points to your Railway domain and that Railway shows the certificate as active.
+  - Optional check from Windows:
+    ```powershell
+    Resolve-DnsName law.shatzii.com
+    # Then re-test in a clean browser profile or after clearing HSTS for the domain
+    ```
 - 404s or blank page:
   - Confirm `BACKEND_URL` is correct and reachable
   - For single-domain, `BACKEND_URL` should be https://law.shatzii.com; API is proxied at /api
