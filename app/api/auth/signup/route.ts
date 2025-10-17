@@ -5,42 +5,40 @@ import { env } from '../../../../lib/env'
 import { logger } from '../../../../lib/logger'
 
 export async function POST(req: NextRequest) {
-  // Basic rate limit to mitigate brute-force attempts
-  const key = `login:${getClientKey(req.headers)}`
-  if (!checkRateLimit(key, 10, 10 * 60 * 1000)) {
+  const key = `signup:${getClientKey(req.headers)}`
+  if (!checkRateLimit(key, 5, 10 * 60 * 1000)) {
     return NextResponse.json({ error: 'Too many attempts. Please try again later.' }, { status: 429, headers: { 'Retry-After': '600' } })
   }
-  // CSRF check
   const csrf = req.headers.get('x-csrf-token')
   if (!verifyCsrf(csrf)) {
-    logger.warn('login csrf_failed')
+    logger.warn('signup csrf_failed')
     return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 })
   }
-  const { email, password } = await req.json().catch(() => ({ email: '', password: '' }))
+  const { email, password, role } = await req.json().catch(() => ({ email: '', password: '', role: 'client' }))
   if (!email || !password) {
     return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
   }
   const backend = env.BACKEND_URL
-  const body = new URLSearchParams({ username: email, password })
   let data: any | null = null
   try {
-    const r = await fetch(`${backend}/api/auth/login`, {
+    const r = await fetch(`${backend}/api/auth/signup`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, role: role || 'client' }),
     })
     if (!r.ok) {
-      logger.warn('login failed', { email })
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
+      const text = await r.text()
+      logger.warn('signup failed', { email })
+      return NextResponse.json({ error: text || 'Signup failed' }, { status: 400 })
     }
     data = await r.json()
   } catch (e) {
-    logger.error('login backend_unreachable', { backend })
+    logger.error('signup backend_unreachable', { backend })
     return NextResponse.json({ error: 'Auth service unreachable' }, { status: 502 })
   }
   const token: string | undefined = data?.access_token
   const isProd = process.env.NODE_ENV === 'production'
-  const cookieParts = (name: string, value: string, maxAge = 60 * 60) => [
+  const cookie = (name: string, value: string, maxAge = 60 * 60) => [
     `${name}=${value}`,
     'Path=/',
     'HttpOnly',
@@ -49,10 +47,8 @@ export async function POST(req: NextRequest) {
     ...(isProd ? ['Secure'] : []),
   ].join('; ')
   const res = NextResponse.json({ ok: true })
-  const cookies: string[] = [cookieParts('auth', '1')]
-  if (token) cookies.push(cookieParts('token', token))
-  res.headers.append('Set-Cookie', cookies[0])
-  if (cookies[1]) res.headers.append('Set-Cookie', cookies[1])
-  logger.info('login success', { email })
+  res.headers.append('Set-Cookie', cookie('auth', '1'))
+  if (token) res.headers.append('Set-Cookie', cookie('token', token))
+  logger.info('signup success', { email })
   return res
 }

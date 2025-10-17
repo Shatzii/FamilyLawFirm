@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useToast } from '../components/ToastProvider'
 import { Button, Card, Input, Skeleton } from '../ui'
 
 type Case = { id: number; title: string; created_by?: number | null; created_at: string }
 
 export default function CasesPage() {
+  const { toast } = useToast()
   const [cases, setCases] = useState<Case[] | null>(null)
   const [title, setTitle] = useState('')
   const [loading, setLoading] = useState(false)
@@ -39,9 +41,11 @@ export default function CasesPage() {
         throw new Error(msg || 'Failed to create case')
       }
       setTitle('')
+      toast({ tone: 'success', title: 'Case created' })
       await loadCases()
     } catch (e: any) {
       setError(e?.message || 'Failed to create case')
+      toast({ tone: 'error', title: 'Failed to create case', description: e?.message })
     } finally {
       setLoading(false)
     }
@@ -91,7 +95,7 @@ export default function CasesPage() {
             ))}
             {Array.isArray(cases) && cases.length === 0 && (
               <tr>
-                <td className="p-4 text-gray-500" colSpan={3}>No cases yet.</td>
+                <td className="p-4 text-gray-500" colSpan={3}>No cases yet. Create your first case using the form above.</td>
               </tr>
             )}
           </tbody>

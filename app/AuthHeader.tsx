@@ -35,7 +35,10 @@ export default function AuthHeader() {
             <button className="underline text-brand" onClick={logout}>Logout</button>
           </div>
           ) : (
-            <a href="/login" className="underline text-brand">Login</a>
+            <div className="flex items-center gap-3">
+              <a href="/login" className="underline text-brand">Login</a>
+              <a href="/register" className="underline">Register</a>
+            </div>
           )}
         </div>
       </div>

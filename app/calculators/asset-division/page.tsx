@@ -1,8 +1,10 @@
 "use client"
 import { useState } from 'react'
 import { calculateAssetDivision } from '../../../lib/calculators'
+import { useToast } from '../../components/ToastProvider'
 
 export default function AssetDivisionPage() {
+  const { toast } = useToast()
   const [inputs, setInputs] = useState({
     maritalAssets: 200000,
     maritalDebts: 50000,
@@ -38,13 +40,19 @@ export default function AssetDivisionPage() {
           <button
             className="bg-colorado-blue text-white rounded px-3 py-1 text-sm"
             onClick={async () => {
-              const res = await fetch('/api/calculators/asset-division', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(inputs),
-              })
-              const data = await res.json()
-              setApiResult(data)
+              try {
+                const res = await fetch('/api/calculators/asset-division', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(inputs),
+                })
+                if (!res.ok) throw new Error(await res.text())
+                const data = await res.json()
+                setApiResult(data)
+                toast({ tone: 'success', title: 'Calculated', description: 'API result loaded.' })
+              } catch (e: any) {
+                toast({ tone: 'error', title: 'Calculation failed', description: e?.message || 'API error' })
+              }
             }}
           >
             Run

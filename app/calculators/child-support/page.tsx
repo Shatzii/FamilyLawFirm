@@ -1,8 +1,10 @@
 "use client"
 import { useState } from 'react'
 import { calculateColoradoChildSupport } from '../../../lib/calculators'
+import { useToast } from '../../components/ToastProvider'
 
 export default function ChildSupportCalculatorPage() {
+  const { toast } = useToast()
   const [inputs, setInputs] = useState({
     parentAIncome: 4500,
     parentBIncome: 3500,
@@ -19,7 +21,23 @@ export default function ChildSupportCalculatorPage() {
   const result = apiResult ?? calculateColoradoChildSupport(inputs)
 
   function update<K extends keyof typeof inputs>(key: K, value: number) {
-    setInputs(prev => ({ ...prev, [key]: value }))
+    if (key === 'overnightsParentA') {
+      const a = Math.max(0, Math.min(365, Math.round(value)))
+      const b = 365 - a
+      setInputs(prev => ({ ...prev, overnightsParentA: a, overnightsParentB: b }))
+    } else if (key === 'overnightsParentB') {
+      const b = Math.max(0, Math.min(365, Math.round(value)))
+      const a = 365 - b
+      setInputs(prev => ({ ...prev, overnightsParentB: b, overnightsParentA: a }))
+    } else if (key === 'childrenCount') {
+      const c = Math.max(1, Math.min(6, Math.round(value)))
+      setInputs(prev => ({ ...prev, childrenCount: c }))
+    } else if (key === 'parentAIncome' || key === 'parentBIncome') {
+      const v = Math.max(0, Math.round(value))
+      setInputs(prev => ({ ...prev, [key]: v }))
+    } else {
+      setInputs(prev => ({ ...prev, [key]: value }))
+    }
   }
 
   return (
@@ -30,28 +48,31 @@ export default function ChildSupportCalculatorPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white rounded-lg border p-4 mb-6">
         <label className="flex flex-col text-sm">
           Parent A Gross Monthly Income
-          <input type="number" className="mt-1 border rounded p-2" value={inputs.parentAIncome}
+          <input type="number" min={0} className="mt-1 border rounded p-2" value={inputs.parentAIncome}
             onChange={e => update('parentAIncome', Number(e.target.value))} />
         </label>
         <label className="flex flex-col text-sm">
           Parent B Gross Monthly Income
-          <input type="number" className="mt-1 border rounded p-2" value={inputs.parentBIncome}
+          <input type="number" min={0} className="mt-1 border rounded p-2" value={inputs.parentBIncome}
             onChange={e => update('parentBIncome', Number(e.target.value))} />
         </label>
         <label className="flex flex-col text-sm">
           Children Count
-          <input type="number" className="mt-1 border rounded p-2" value={inputs.childrenCount}
+          <input type="number" min={1} max={6} className="mt-1 border rounded p-2" value={inputs.childrenCount}
             onChange={e => update('childrenCount', Number(e.target.value))} />
+          <span className="text-xs text-gray-600 mt-1">Range: 1–6</span>
         </label>
         <label className="flex flex-col text-sm">
           Overnights Parent A
-          <input type="number" className="mt-1 border rounded p-2" value={inputs.overnightsParentA}
+          <input type="number" min={0} max={365} className="mt-1 border rounded p-2" value={inputs.overnightsParentA}
             onChange={e => update('overnightsParentA', Number(e.target.value))} />
+          <span className="text-xs text-gray-600 mt-1">Parent B overnights auto-set to {inputs.overnightsParentB}</span>
         </label>
         <label className="flex flex-col text-sm">
           Overnights Parent B
-          <input type="number" className="mt-1 border rounded p-2" value={inputs.overnightsParentB}
+          <input type="number" min={0} max={365} className="mt-1 border rounded p-2" value={inputs.overnightsParentB}
             onChange={e => update('overnightsParentB', Number(e.target.value))} />
+          <span className="text-xs text-gray-600 mt-1">Parent A overnights auto-set to {inputs.overnightsParentA}</span>
         </label>
       </div>
 
@@ -64,13 +85,19 @@ export default function ChildSupportCalculatorPage() {
           <button
             className="bg-colorado-blue text-white rounded px-3 py-1 text-sm"
             onClick={async () => {
-              const res = await fetch('/api/calculators/child-support', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(inputs),
-              })
-              const data = await res.json()
-              setApiResult(data)
+              try {
+                const res = await fetch('/api/calculators/child-support', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(inputs),
+                })
+                if (!res.ok) throw new Error(await res.text())
+                const data = await res.json()
+                setApiResult(data)
+                toast({ tone: 'success', title: 'Calculated', description: 'API result loaded.' })
+              } catch (e: any) {
+                toast({ tone: 'error', title: 'Calculation failed', description: e?.message || 'API error' })
+              }
             }}
           >
             Run

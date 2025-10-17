@@ -1,8 +1,10 @@
 "use client"
 import { useState } from 'react'
 import { calculateParentingTime } from '../../../lib/calculators'
+import { useToast } from '../../components/ToastProvider'
 
 export default function ParentingTimePage() {
+  const { toast } = useToast()
   const [inputs, setInputs] = useState({
     regularSchedule: { weekdaysParentA: 3, weekendsParentA: 1, holidaysParentA: 5 },
     summerSchedule: { weeksParentA: 6 },
@@ -20,6 +22,11 @@ export default function ParentingTimePage() {
         <div>Overnights A: {result.annualOvernights.parentA}</div>
         <div>Overnights B: {result.annualOvernights.parentB}</div>
         <div className="text-sm text-gray-700 mt-2">Classification: {result.coloradoClassification}</div>
+        {result.recommendations?.length > 0 && (
+          <ul className="mt-2 list-disc list-inside text-sm text-gray-700">
+            {result.recommendations.map((r, i) => <li key={i}>{r}</li>)}
+          </ul>
+        )}
       </div>
       <div className="flex items-center gap-3 mt-4">
         <label className="flex items-center gap-2 text-sm">
@@ -30,13 +37,19 @@ export default function ParentingTimePage() {
           <button
             className="bg-colorado-blue text-white rounded px-3 py-1 text-sm"
             onClick={async () => {
-              const res = await fetch('/api/calculators/parenting-time', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(inputs),
-              })
-              const data = await res.json()
-              setApiResult(data)
+              try {
+                const res = await fetch('/api/calculators/parenting-time', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(inputs),
+                })
+                if (!res.ok) throw new Error(await res.text())
+                const data = await res.json()
+                setApiResult(data)
+                toast({ tone: 'success', title: 'Calculated', description: 'API result loaded.' })
+              } catch (e: any) {
+                toast({ tone: 'error', title: 'Calculation failed', description: e?.message || 'API error' })
+              }
             }}
           >
             Run

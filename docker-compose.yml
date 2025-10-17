@@ -70,6 +70,7 @@ services:
     environment:
       NEXT_TELEMETRY_DISABLED: '1'
       NODE_ENV: development
+      BACKEND_URL: http://backend:3001
     ports:
       - "3001:3001"
     volumes:
